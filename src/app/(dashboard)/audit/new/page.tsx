@@ -7,8 +7,6 @@ import {
   ClipboardCheck,
   CheckCircle2,
   XCircle,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Loader2,
   MessageSquare,
@@ -336,7 +334,7 @@ export default function NewAuditPage() {
                           {subCat}
                         </h3>
                         <div className="space-y-1">
-                          {checkpoints.map((cp, idx) => {
+                          {checkpoints.map((cp, _idx) => {
                             const state = results[cp.id];
                             const globalIndex =
                               activeTemplate.zones

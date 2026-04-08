@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { hotelSchema, roomCategorySchema, type HotelInput, type RoomCategoryInput } from "@/lib/validations";
+import { hotelSchema, type HotelInput, type RoomCategoryInput } from "@/lib/validations";
 import { useHotelStore } from "@/stores/hotel-store";
 import {
-  Hotel, ArrowRight, ArrowLeft, Plus, Trash2, Loader2,
+  ArrowRight, ArrowLeft, Plus, Trash2, Loader2,
   Check, Building, BedDouble, ListChecks
 } from "lucide-react";
 

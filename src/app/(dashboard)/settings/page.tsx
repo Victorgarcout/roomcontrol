@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useHotelStore } from "@/stores/hotel-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { Settings, Save, Loader2, Hotel, Users, Shield } from "lucide-react";
+import { Settings, Save, Loader2, Hotel, Shield } from "lucide-react";
 
 export default function SettingsPage() {
   const { activeHotelId } = useHotelStore();

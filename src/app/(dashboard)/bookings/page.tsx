@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useHotelStore } from "@/stores/hotel-store";
-import { BOOKING_STATUS_CONFIG, PAYMENT_METHODS } from "@/types";
+import { BOOKING_STATUS_CONFIG } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { CalendarCheck, Plus, Search, Loader2, Eye } from "lucide-react";
 import Link from "next/link";

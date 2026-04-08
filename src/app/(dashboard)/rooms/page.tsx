@@ -5,7 +5,7 @@ import { useHotelStore } from "@/stores/hotel-store";
 import { RoomWithCategory, ROOM_STATUS_CONFIG, RoomStatus } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import {
-  BedDouble, Grid3X3, List, Filter, ChevronDown, Users, Loader2
+  BedDouble, Grid3X3, List, ChevronDown, Users, Loader2
 } from "lucide-react";
 
 const STATUS_OPTIONS: RoomStatus[] = ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "CLEANING", "BLOCKED"];

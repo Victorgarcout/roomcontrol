@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Search, Loader2 } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<any[]>([]);

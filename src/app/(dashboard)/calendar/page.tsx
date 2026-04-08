@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useHotelStore } from "@/stores/hotel-store";
-import { formatDate } from "@/lib/utils";
 import { Calendar, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { addDays, startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";

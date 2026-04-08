@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useHotelStore } from "@/stores/hotel-store";
-import { DashboardStats, ROOM_STATUS_CONFIG } from "@/types";
+import { DashboardStats } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import {
-  BedDouble, Users, CalendarCheck, ArrowUpRight, ArrowDownRight,
-  Wrench, Sparkles, Ban, TrendingUp, DollarSign, AlertTriangle
+  BedDouble, Users, ArrowUpRight, ArrowDownRight,
+  Wrench, Sparkles, Ban, TrendingUp, DollarSign
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer

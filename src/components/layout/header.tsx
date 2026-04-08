@@ -13,7 +13,6 @@ import {
   LogOut,
   ChevronRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/theme-provider";
 
 interface HeaderProps {

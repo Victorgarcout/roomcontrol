@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { BOOKING_STATUS_CONFIG, PAYMENT_METHODS } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -11,7 +11,6 @@ import Link from "next/link";
 
 export default function BookingDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
