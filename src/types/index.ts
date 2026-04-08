@@ -1,4 +1,4 @@
-import { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode } from "@prisma/client";
+import { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode } from "@/generated/prisma";
 
 export type { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode };
 
