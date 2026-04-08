@@ -1,0 +1,382 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTH & USERS
+// ============================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  RECEPTIONIST
+  HOUSEKEEPING
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           Role      @default(RECEPTIONIST)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  hotels         HotelUser[]
+  bookings       Booking[]
+  statusChanges  StatusHistory[]
+  audits         RoomAudit[]
+  mailLogs       MailLog[]
+
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// HOTEL & ROOMS
+// ============================================
+
+model Hotel {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          HotelUser[]
+  categories     RoomCategory[]
+  rooms          Room[]
+  bookings       Booking[]
+  mailLogs       MailLog[]
+  auditTemplates AuditTemplate[]
+}
+
+model HotelUser {
+  id      String @id @default(cuid())
+  userId  String
+  hotelId String
+  role    Role   @default(RECEPTIONIST)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hotelId])
+}
+
+model RoomCategory {
+  id          String   @id @default(cuid())
+  hotelId     String
+  name        String
+  description String?
+  price       Float
+  capacity    Int      @default(2)
+  amenities   String?
+  photo       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hotel Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  rooms Room[]
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  CLEANING
+  BLOCKED
+}
+
+model Room {
+  id         String     @id @default(cuid())
+  hotelId    String
+  categoryId String
+  number     String
+  floor      Int        @default(1)
+  status     RoomStatus @default(AVAILABLE)
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  hotel         Hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  category      RoomCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  bookings      Booking[]
+  statusHistory StatusHistory[]
+  audits        RoomAudit[]
+
+  @@unique([hotelId, number])
+}
+
+model StatusHistory {
+  id         String     @id @default(cuid())
+  roomId     String
+  fromStatus RoomStatus
+  toStatus   RoomStatus
+  changedBy  String
+  notes      String?
+  createdAt  DateTime   @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [changedBy], references: [id])
+}
+
+// ============================================
+// BOOKINGS & GUESTS
+// ============================================
+
+model Guest {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  nationality String?
+  idNumber    String?
+  idDocument  String?
+  company     String?
+  companyVat  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  hotelId       String
+  roomId        String
+  guestId       String
+  createdById   String
+  checkIn       DateTime
+  checkOut      DateTime
+  nights        Int
+  guests        Int           @default(1)
+  status        BookingStatus @default(CONFIRMED)
+  ratePerNight  Float
+  discount      Float         @default(0)
+  totalAmount   Float
+  paymentMethod PaymentMethod @default(CASH)
+  isPaid        Boolean       @default(false)
+
+  breakfast     Boolean @default(false)
+  parking       Boolean @default(false)
+  babyBed       Boolean @default(false)
+  transfer      Boolean @default(false)
+  extras        String?
+
+  includeTax    Boolean @default(true)
+  taxRate       Float   @default(10)
+  isProInvoice  Boolean @default(false)
+
+  notes           String?
+  specialRequests String?
+  quickMode       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room      Room      @relation(fields: [roomId], references: [id])
+  guest     Guest     @relation(fields: [guestId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+  payments  Payment[]
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  bookingId String
+  amount    Float
+  method    PaymentMethod
+  notes     String?
+  createdAt DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// MAILING
+// ============================================
+
+enum MailType {
+  WELCOME
+  BOOKING_CONFIRMATION
+  REMINDER
+  CHECKOUT
+  INTERNAL_ALERT
+  AUDIT_REPORT
+  PASSWORD_RESET
+}
+
+model MailLog {
+  id        String   @id @default(cuid())
+  hotelId   String?
+  userId    String?
+  to        String
+  subject   String
+  type      MailType
+  status    String   @default("sent")
+  error     String?
+  createdAt DateTime @default(now())
+
+  hotel Hotel? @relation(fields: [hotelId], references: [id])
+  user  User?  @relation(fields: [userId], references: [id])
+}
+
+// ============================================
+// AUDIT / QUALITY CONTROL
+// ============================================
+
+enum AuditScoringMode {
+  BINARY
+  SCORE
+  COMMENT_ONLY
+}
+
+model AuditTemplate {
+  id          String           @id @default(cuid())
+  hotelId     String
+  name        String
+  description String?
+  scoringMode AuditScoringMode @default(BINARY)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  hotel  Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  zones  AuditZone[]
+  audits RoomAudit[]
+}
+
+model AuditZone {
+  id         String   @id @default(cuid())
+  templateId String
+  name       String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  template    AuditTemplate     @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  checkpoints AuditCheckpoint[]
+}
+
+model AuditCheckpoint {
+  id          String   @id @default(cuid())
+  zoneId      String
+  label       String
+  subCategory String?
+  sortOrder   Int      @default(0)
+  weight      Float    @default(1)
+  isBlocking  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  zone    AuditZone               @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  results AuditCheckpointResult[]
+}
+
+model RoomAudit {
+  id          String    @id @default(cuid())
+  templateId  String
+  roomId      String
+  auditorId   String
+  score       Float?
+  maxScore    Float?
+  passed      Boolean   @default(true)
+  duration    Int?
+  notes       String?
+  signature   String?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  template AuditTemplate           @relation(fields: [templateId], references: [id])
+  room     Room                    @relation(fields: [roomId], references: [id])
+  auditor  User                    @relation(fields: [auditorId], references: [id])
+  results  AuditCheckpointResult[]
+  photos   AuditPhoto[]
+}
+
+model AuditCheckpointResult {
+  id           String   @id @default(cuid())
+  auditId      String
+  checkpointId String
+  passed       Boolean?
+  score        Int?
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  audit      RoomAudit       @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  checkpoint AuditCheckpoint @relation(fields: [checkpointId], references: [id])
+}
+
+model AuditPhoto {
+  id                 String   @id @default(cuid())
+  auditId            String
+  url                String
+  caption            String?
+  checkpointResultId String?
+  createdAt          DateTime @default(now())
+
+  audit RoomAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+}
