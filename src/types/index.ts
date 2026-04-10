@@ -1,4 +1,4 @@
-import { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode } from "@/generated/prisma";
+import { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode } from "@/generated/prisma/enums";
 
 export type { Role, RoomStatus, BookingStatus, PaymentMethod, AuditScoringMode };
 

@@ -127,7 +127,7 @@ export default function DashboardPage() {
                   borderRadius: "8px",
                   color: "#fff",
                 }}
-                formatter={(value: number) => [`${value}%`, "Occupation"]}
+                formatter={(value) => [`${value}%`, "Occupation"]}
               />
               <Bar dataKey="rate" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>

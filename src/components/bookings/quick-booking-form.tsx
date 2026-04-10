@@ -20,7 +20,7 @@ export function QuickBookingForm({ roomId, roomNumber, onSuccess, onCancel }: Qu
   const [error, setError] = useState("");
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<QuickBookingInput>({
-    resolver: zodResolver(quickBookingSchema),
+    resolver: zodResolver(quickBookingSchema) as any,
     defaultValues: {
       roomId,
       checkIn: new Date().toISOString().split("T")[0] as any,

@@ -29,7 +29,7 @@ export function AdvancedBookingForm({ roomId, onSuccess, onCancel }: AdvancedBoo
   const [rooms, setRooms] = useState<any[]>([]);
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<AdvancedBookingInput>({
-    resolver: zodResolver(advancedBookingSchema),
+    resolver: zodResolver(advancedBookingSchema) as any,
     defaultValues: {
       roomId: roomId || "",
       checkIn: new Date().toISOString().split("T")[0] as any,
