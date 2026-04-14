@@ -90,3 +90,13 @@
 .sidebar-transition {
   transition: width 200ms ease-in-out, transform 200ms ease-in-out;
 }
+
+/* somnOO Quality animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.3s ease;
+}
