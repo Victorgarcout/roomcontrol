@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/trustyou-sync",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/quality-alerts",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
