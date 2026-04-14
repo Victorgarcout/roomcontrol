@@ -12,10 +12,10 @@ datasource db {
 // ============================================
 
 enum Role {
-  SUPER_ADMIN
-  ADMIN
-  RECEPTIONIST
-  HOUSEKEEPING
+  SUPER_ADMIN       // Siège somnOO — vue consolidée tous hôtels
+  ADMIN             // GM — accès complet à son hôtel
+  OPE_HEBERGEMENT   // DM, réception, gouvernante
+  OPE_TECHNIQUE     // Technicien, maintenance
 }
 
 model User {
@@ -25,7 +25,7 @@ model User {
   emailVerified  DateTime?
   image          String?
   hashedPassword String?
-  role           Role      @default(RECEPTIONIST)
+  role           Role      @default(OPE_HEBERGEMENT)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -36,6 +36,10 @@ model User {
   statusChanges  StatusHistory[]
   audits         RoomAudit[]
   mailLogs       MailLog[]
+
+  // Quality relations
+  ritualChecks   RitualCheck[]
+  hotelAudits    HotelAudit[]
 
   resetToken        String?   @unique
   resetTokenExpires DateTime?
@@ -84,9 +88,13 @@ model Hotel {
   id        String   @id @default(cuid())
   name      String
   address   String?
+  city      String?
   phone     String?
   email     String?
   logo      String?
+  rooms_count Int?
+  rpsTarget Float?
+  trustyouId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -96,13 +104,26 @@ model Hotel {
   bookings       Booking[]
   mailLogs       MailLog[]
   auditTemplates AuditTemplate[]
+
+  // Quality relations
+  monthlyPerfs       MonthlyPerf[]
+  actionPlans        ActionPlan[]
+  ritualChecks       RitualCheck[]
+  roomEquipChecks    RoomEquipCheck[]
+  commonAreaChecks   CommonAreaCheck[]
+  maintenanceTickets MaintenanceTicket[]
+  supplierMaints     SupplierMaint[]
+  safetyItems        SafetyItem[]
+  safetyCommissions  SafetyCommission[]
+  hotelAudits        HotelAudit[]
+  playbookCustoms    PlaybookCustom[]
 }
 
 model HotelUser {
   id      String @id @default(cuid())
   userId  String
   hotelId String
-  role    Role   @default(RECEPTIONIST)
+  role    Role   @default(OPE_HEBERGEMENT)
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
@@ -287,7 +308,7 @@ model MailLog {
 }
 
 // ============================================
-// AUDIT / QUALITY CONTROL
+// AUDIT / QUALITY CONTROL (RoomControl)
 // ============================================
 
 enum AuditScoringMode {
@@ -379,4 +400,261 @@ model AuditPhoto {
   createdAt          DateTime @default(now())
 
   audit RoomAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// somnOO QUALITY — PERFORMANCE (TrustYou)
+// ============================================
+
+model MonthlyPerf {
+  id           String   @id @default(cuid())
+  hotelId      String
+  hotel        Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  year         Int
+  month        Int      // 1-12
+  rps          Float?
+  rpsN1        Float?
+  compIndex    Float?
+  nbReviews    Int?
+  responseRate Float?
+  negImpact1   String?
+  negImpact2   String?
+  negImpact3   String?
+  posImpact1   String?
+  posImpact2   String?
+  posImpact3   String?
+  sparkles     Int?
+  animations   Int?
+  comments     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([hotelId, year, month])
+}
+
+// ============================================
+// somnOO QUALITY — PLAN D'ACTION
+// ============================================
+
+enum ActionStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum ActionCategory {
+  CHAMBRE
+  PROPRETE
+  EQUIPEMENT
+  MAINTENANCE
+}
+
+model ActionPlan {
+  id       String         @id @default(cuid())
+  hotelId  String
+  hotel    Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  category ActionCategory
+  score    Float?
+  text     String
+  dueDate  DateTime?
+  owner    String
+  status   ActionStatus   @default(TODO)
+  budget   Float?
+  comment  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — RITUELS
+// ============================================
+
+model RitualCheck {
+  id        String   @id @default(cuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  ritualId  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  weekStart DateTime
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([hotelId, ritualId, weekStart])
+}
+
+// ============================================
+// somnOO QUALITY — SUIVI TECHNIQUE CHAMBRES
+// ============================================
+
+enum EquipmentState {
+  BON
+  DEGRADE
+  HS
+}
+
+model RoomEquipCheck {
+  id          String       @id @default(cuid())
+  hotelId     String
+  hotel       Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomNumber  String
+  checkDate   DateTime
+  equipStates Json         // { "TV": "BON", "Joints SDB": "DEGRADE", ... }
+  action      String?
+  status      ActionStatus @default(TODO)
+  checkedBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — SUIVI PARTIES COMMUNES
+// ============================================
+
+model CommonAreaCheck {
+  id          String       @id @default(cuid())
+  hotelId     String
+  hotel       Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  areaName    String
+  checkDate   DateTime
+  checkStates Json         // { "Peinture": "BON", "Sols": "DEGRADE" }
+  action      String?
+  status      ActionStatus @default(TODO)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — MAINTENANCE QUOTIDIENNE
+// ============================================
+
+enum TicketPriority {
+  HAUTE
+  MOYENNE
+  FAIBLE
+}
+
+enum TicketStatus {
+  A_FAIRE
+  EN_COURS
+  TERMINE
+}
+
+model MaintenanceTicket {
+  id         String         @id @default(cuid())
+  hotelId    String
+  hotel      Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  date       DateTime       @default(now())
+  zone       String
+  equipment  String
+  problem    String
+  priority   TicketPriority @default(MOYENNE)
+  status     TicketStatus   @default(A_FAIRE)
+  cost       Float?
+  assignedTo String?
+  photos     String[]
+  comments   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — MAINTENANCE FOURNISSEURS
+// ============================================
+
+model SupplierMaint {
+  id        String    @id @default(cuid())
+  hotelId   String
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  equipment String
+  lastCheck DateTime?
+  frequency String
+  supplier  String?
+  reserves  String?
+  quotation Float?
+  documents String[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — COMMISSION DE SÉCURITÉ
+// ============================================
+
+enum SafetyStatus {
+  CONFORME
+  RESERVE
+  EN_COURS
+  EXPIRE
+}
+
+model SafetyItem {
+  id        String       @id @default(cuid())
+  hotelId   String
+  hotel     Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  category  String       // "moyens_secours", "controles", "formations"
+  label     String
+  lastCheck DateTime?
+  frequency String
+  status    SafetyStatus @default(EXPIRE)
+  documents String[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model SafetyCommission {
+  id            String    @id @default(cuid())
+  hotelId       String
+  hotel         Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  visitDate     DateTime
+  result        String    // "favorable", "defavorable", "favorable_avec_reserves"
+  prescriptions Json      // [{ text, resolved, resolvedDate }]
+  nextVisitDate DateTime?
+  pvDocument    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ============================================
+// somnOO QUALITY — AUDIT GLOBAL HÔTEL
+// ============================================
+
+model HotelAudit {
+  id          String           @id @default(cuid())
+  hotelId     String
+  hotel       Hotel            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  auditDate   DateTime
+  auditorId   String
+  auditor     User             @relation(fields: [auditorId], references: [id])
+  globalScore Float?
+  items       HotelAuditItem[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model HotelAuditItem {
+  id       String     @id @default(cuid())
+  auditId  String
+  audit    HotelAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  zone     String
+  item     String
+  score    Int        // 1-4
+  comment  String?
+  photos   String[]
+}
+
+// ============================================
+// somnOO QUALITY — PLAYBOOK CUSTOM
+// ============================================
+
+model PlaybookCustom {
+  id          String   @id @default(cuid())
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  type        String   // "event", "season_summer", "season_winter", "season_all", "boost"
+  title       String
+  description String?
+  effort      String?  // "low", "med", "high"
+  createdBy   String
+  createdAt   DateTime @default(now())
 }
