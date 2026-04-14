@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination, paginatedResponse } from "@/lib/pagination";
 
 // GET /api/audit - List audits for a hotel
 export async function GET(req: NextRequest) {
@@ -19,7 +20,6 @@ export async function GET(req: NextRequest) {
   const templateId = req.nextUrl.searchParams.get("templateId");
   const dateFrom = req.nextUrl.searchParams.get("dateFrom");
   const dateTo = req.nextUrl.searchParams.get("dateTo");
-  const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
 
   const where: any = {
     room: { hotelId },
@@ -34,19 +34,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const audits = await prisma.roomAudit.findMany({
-      where,
-      include: {
-        room: { select: { id: true, number: true, floor: true } },
-        template: { select: { id: true, name: true, scoringMode: true } },
-        auditor: { select: { id: true, name: true, email: true } },
-        _count: { select: { results: true } },
-      },
-      orderBy: { startedAt: "desc" },
-      take: limit,
-    });
+    const pagination = parsePagination(req);
+    const [audits, total] = await Promise.all([
+      prisma.roomAudit.findMany({
+        where,
+        include: {
+          room: { select: { id: true, number: true, floor: true } },
+          template: { select: { id: true, name: true, scoringMode: true } },
+          auditor: { select: { id: true, name: true, email: true } },
+          _count: { select: { results: true } },
+        },
+        orderBy: { startedAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.roomAudit.count({ where }),
+    ]);
 
-    return NextResponse.json(audits);
+    return NextResponse.json(paginatedResponse(audits, total, pagination));
   } catch (error) {
     console.error("[AUDIT_GET]", error);
     return NextResponse.json({ error: "Erreur interne" }, { status: 500 });

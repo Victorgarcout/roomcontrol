@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination, paginatedResponse } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -23,22 +24,28 @@ export async function GET(req: NextRequest) {
   if (categoryId) where.categoryId = categoryId;
   if (floor) where.floor = parseInt(floor);
 
-  const rooms = await prisma.room.findMany({
-    where,
-    include: {
-      category: { select: { id: true, name: true, price: true, capacity: true } },
-      bookings: {
-        where: {
-          status: { in: ["CONFIRMED", "CHECKED_IN"] },
-          checkIn: { lte: new Date() },
-          checkOut: { gte: new Date() },
+  const pagination = parsePagination(req);
+  const [rooms, total] = await Promise.all([
+    prisma.room.findMany({
+      where,
+      include: {
+        category: { select: { id: true, name: true, price: true, capacity: true } },
+        bookings: {
+          where: {
+            status: { in: ["CONFIRMED", "CHECKED_IN"] },
+            checkIn: { lte: new Date() },
+            checkOut: { gte: new Date() },
+          },
+          include: { guest: { select: { firstName: true, lastName: true } } },
+          take: 1,
         },
-        include: { guest: { select: { firstName: true, lastName: true } } },
-        take: 1,
       },
-    },
-    orderBy: [{ floor: "asc" }, { number: "asc" }],
-  });
+      orderBy: [{ floor: "asc" }, { number: "asc" }],
+      skip: pagination.skip,
+      take: pagination.limit,
+    }),
+    prisma.room.count({ where }),
+  ]);
 
   const result = rooms.map((room) => ({
     ...room,
@@ -46,7 +53,7 @@ export async function GET(req: NextRequest) {
     bookings: undefined,
   }));
 
-  return NextResponse.json(result);
+  return NextResponse.json(paginatedResponse(result, total, pagination));
 }
 
 export async function POST(req: NextRequest) {

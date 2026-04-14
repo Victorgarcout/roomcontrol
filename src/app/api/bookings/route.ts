@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { quickBookingSchema, advancedBookingSchema } from "@/lib/validations";
 import { calculateNights } from "@/lib/utils";
+import { parsePagination, paginatedResponse } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -25,17 +26,23 @@ export async function GET(req: NextRequest) {
   if (from) where.checkIn = { gte: new Date(from) };
   if (to) where.checkOut = { ...where.checkOut, lte: new Date(to) };
 
-  const bookings = await prisma.booking.findMany({
-    where,
-    include: {
-      room: { select: { id: true, number: true, category: { select: { name: true } } } },
-      guest: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
-      createdBy: { select: { id: true, name: true } },
-    },
-    orderBy: { checkIn: "desc" },
-  });
+  const pagination = parsePagination(req);
+  const [bookings, total] = await Promise.all([
+    prisma.booking.findMany({
+      where,
+      include: {
+        room: { select: { id: true, number: true, category: { select: { name: true } } } },
+        guest: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+        createdBy: { select: { id: true, name: true } },
+      },
+      orderBy: { checkIn: "desc" },
+      skip: pagination.skip,
+      take: pagination.limit,
+    }),
+    prisma.booking.count({ where }),
+  ]);
 
-  return NextResponse.json(bookings);
+  return NextResponse.json(paginatedResponse(bookings, total, pagination));
 }
 
 export async function POST(req: NextRequest) {

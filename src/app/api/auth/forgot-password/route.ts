@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import { v4 as uuidv4 } from "uuid";
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting: 5 req/min
+    const rateLimitResponse = await rateLimit("forgotPassword", getClientIdentifier(req));
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { email } = await req.json();
 
     const user = await prisma.user.findUnique({ where: { email } });
